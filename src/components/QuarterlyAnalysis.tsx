@@ -1,11 +1,20 @@
 import { MatchedOrder } from '@/lib/types';
 import { calculateAmount, formatAmount } from '@/lib/utils';
 import { format, subMonths } from 'date-fns';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import Skeleton from './Loader';
 import { axiosInstance } from '@/lib/api';
+
+const formatUsdMillions = (amount: number) => {
+    return `${(amount / 1_000_000).toFixed(2)} M`;
+};
+
+const calculatePercentage = (part: number, total: number) => {
+    if (total <= 0) return '0.00';
+    return ((part / total) * 100).toFixed(2);
+};
 
 const QuarterlyAnalysis = () => {
     const [monthlyData, setMonthlyData] = useState<{
@@ -13,22 +22,25 @@ const QuarterlyAnalysis = () => {
         totalBtc: number;
         taggedBtc: number;
         untaggedBtc: number;
-        taggedVolume: number;
-        untaggedVolume: number;
+        volumeUsd: number;
+        taggedVolumeUsd: number;
+        untaggedVolumeUsd: number;
     }[]>([]);
-    
+
     const [quarterlyTotal, setQuarterlyTotal] = useState<{
         totalBtc: number;
         taggedBtc: number;
         untaggedBtc: number;
-        taggedVolume: number;
-        untaggedVolume: number;
+        volumeUsd: number;
+        taggedVolumeUsd: number;
+        untaggedVolumeUsd: number;
     }>({
         totalBtc: 0,
         taggedBtc: 0,
         untaggedBtc: 0,
-        taggedVolume: 0,
-        untaggedVolume: 0
+        volumeUsd: 0,
+        taggedVolumeUsd: 0,
+        untaggedVolumeUsd: 0
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -37,19 +49,15 @@ const QuarterlyAnalysis = () => {
     const fetchLastThreeMonthsData = async () => {
         setIsLoading(true);
         const today = new Date();
-
-        // October's start
         const currentYear = today.getFullYear();
         const quarterStart = today.getMonth() < 9 
             ? new Date(currentYear - 1, 9, 1)
             : new Date(currentYear, 9, 1);
         
-        const fromEpoch = quarterStart.getTime();
-        const toEpoch = today.getTime();
-
         try {
-            const { data } = await axiosInstance.get<MatchedOrder[]>(`/orders?from=${fromEpoch}&to=${toEpoch}`);
-            console.log("Fetched Orders:", data);
+            const { data } = await axiosInstance.get<MatchedOrder[]>(
+                `/orders?from=${quarterStart.getTime()}&to=${today.getTime()}`
+            );
             setOrders(data);
         } catch (err) {
             console.error("Error fetching orders: ", err);
@@ -59,51 +67,50 @@ const QuarterlyAnalysis = () => {
     };
 
     const calculateMonthlyAnalysis = (orders: MatchedOrder[]) => {
-
-        const months: { [key: string]: {
+        const months: Record<string, {
             month: string;
             totalBtc: number;
             taggedBtc: number;
             untaggedBtc: number;
-            taggedVolume: number;
-            untaggedVolume: number;
-        }} = {};
+            volumeUsd: number;
+            taggedVolumeUsd: number;
+            untaggedVolumeUsd: number;
+        }> = {};
 
-        // Process orders
         orders.forEach((order) => {
-            const orderDate = new Date(order.CreatedAt);
-            const monthKey = format(orderDate, "yyyy-MM");
-            const orderAmount = formatAmount(order.initiatorAtomicSwap.amount, 8);
-            const calculatedAmount = calculateAmount(
-                order.initiatorAtomicSwap.priceByOracle,
-                order.initiatorAtomicSwap.amount,
-                8
-            );
-            const orderVolume = calculatedAmount / 1_000_000; 
-
+            const monthKey = format(new Date(order.CreatedAt), "yyyy-MM");
+            const btcAmount = formatAmount(order.initiatorAtomicSwap.amount, 8);
+            
+            const usdAmount = calculateAmount(order.initiatorAtomicSwap.priceByOracle,order.initiatorAtomicSwap.amount,8) 
+                                + 
+                              calculateAmount(order.followerAtomicSwap.priceByOracle,order.followerAtomicSwap.amount,8);
+            
             if (!months[monthKey]) {
                 months[monthKey] = {
                     month: monthKey,
                     totalBtc: 0,
                     taggedBtc: 0,
                     untaggedBtc: 0,
-                    taggedVolume: 0,
-                    untaggedVolume: 0
+                    volumeUsd: 0,
+                    taggedVolumeUsd: 0,
+                    untaggedVolumeUsd: 0
                 };
             }
 
-            const isTagged = order.tags && order.tags.length > 0;
+            const isTagged = order.tags && order.tags?.length > 0;
+            const monthData = months[monthKey];
 
-            months[monthKey].totalBtc += orderAmount;
+            monthData.totalBtc += btcAmount;
+            monthData.volumeUsd += usdAmount;
+
             if (isTagged) {
-                months[monthKey].taggedBtc += orderAmount;
-                months[monthKey].taggedVolume += orderVolume;
+                monthData.taggedBtc += btcAmount;
+                monthData.taggedVolumeUsd += usdAmount;
             } else {
-                months[monthKey].untaggedBtc += orderAmount;
-                months[monthKey].untaggedVolume += orderVolume;
+                monthData.untaggedBtc += btcAmount;
+                monthData.untaggedVolumeUsd += usdAmount;
             }
         });
-
 
         const lastThreeMonths = Array.from({ length: 3 }, (_, i) => {
             const date = subMonths(new Date(), i);
@@ -113,8 +120,9 @@ const QuarterlyAnalysis = () => {
                 totalBtc: 0,
                 taggedBtc: 0,
                 untaggedBtc: 0,
-                taggedVolume: 0,
-                untaggedVolume: 0
+                volumeUsd: 0,
+                taggedVolumeUsd: 0,
+                untaggedVolumeUsd: 0
             };
         }).reverse();
 
@@ -122,14 +130,16 @@ const QuarterlyAnalysis = () => {
             totalBtc: acc.totalBtc + month.totalBtc,
             taggedBtc: acc.taggedBtc + month.taggedBtc,
             untaggedBtc: acc.untaggedBtc + month.untaggedBtc,
-            taggedVolume: acc.taggedVolume + month.taggedVolume,
-            untaggedVolume: acc.untaggedVolume + month.untaggedVolume
+            volumeUsd: acc.volumeUsd + month.volumeUsd,
+            taggedVolumeUsd: acc.taggedVolumeUsd + month.taggedVolumeUsd,
+            untaggedVolumeUsd: acc.untaggedVolumeUsd + month.untaggedVolumeUsd
         }), {
             totalBtc: 0,
             taggedBtc: 0,
             untaggedBtc: 0,
-            taggedVolume: 0,
-            untaggedVolume: 0
+            volumeUsd: 0,
+            taggedVolumeUsd: 0,
+            untaggedVolumeUsd: 0
         });
 
         setMonthlyData(lastThreeMonths);
@@ -146,65 +156,61 @@ const QuarterlyAnalysis = () => {
         }
     }, [orders]);
 
-    if (isLoading) {
-        return (
-                <Skeleton/>
-        );
-    }
+    if (isLoading) return <Skeleton />;
 
     return (
         <Card className="mb-4">
             <CardHeader>
-                <CardDescription className='text-center'>
-                    Breakdown of transactions for the last 3 months
+                <CardDescription className="text-center">
+                    Breakdown of transactions from October 2024
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {/* Quarterly Summary */}
                 <div className="mb-4 grid grid-cols-2 gap-4 bg-gray-100 p-4 rounded">
-                    <div className='text-center'>
+                    <div className="text-center">
                         <p className="font-semibold">Quarterly Total BTC</p>
-                        <p>{quarterlyTotal.totalBtc.toFixed(2)}</p>
+                        <p>{quarterlyTotal.totalBtc.toFixed(2)} ({formatUsdMillions(quarterlyTotal.volumeUsd)})</p>
                     </div>
-                    <div className='text-center'>
+                    <div className="text-center">
                         <p className="font-semibold">Tagged Contribution</p>
-                        <p>{`${quarterlyTotal.taggedBtc.toFixed(2)} (${quarterlyTotal.taggedVolume + quarterlyTotal.untaggedVolume > 0 
-                                ? ((quarterlyTotal.taggedVolume / (quarterlyTotal.taggedVolume + quarterlyTotal.untaggedVolume)) * 100).toFixed(2) 
-                                : '0.00'})`}</p>
+                        <p>{quarterlyTotal.taggedBtc.toFixed(2)} ({formatUsdMillions(quarterlyTotal.taggedVolumeUsd)})</p>
                     </div>
-                    <div className='text-center'>
-                        <p className="font-semibold">Tagged Volume (millions)</p>
-                        <p>
-                            {`${quarterlyTotal.taggedVolume.toFixed(2)}`}
-                        </p>
+                    <div className="text-center">
+                        <p className="font-semibold">Tagged Volume USD</p>
+                        <p>{formatUsdMillions(quarterlyTotal.taggedVolumeUsd)}</p>
                     </div>
-                    <div className='text-center'>
-                        <p className="font-semibold">Untagged Volume (millions)</p>
-                        <p>{quarterlyTotal.untaggedVolume.toFixed(2)}</p>
+                    <div className="text-center">
+                        <p className="font-semibold">Untagged Volume USD</p>
+                        <p>{formatUsdMillions(quarterlyTotal.untaggedVolumeUsd)}</p>
                     </div>
                 </div>
 
-                {/* Monthly Breakdown Table */}
                 {monthlyData.length > 0 ? (
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="text-center">Month</TableHead>
-                                <TableHead className="text-center">Total BTC</TableHead>
-                                <TableHead className="text-center">Tagged BTC</TableHead>
-                                <TableHead className="text-center">Untagged BTC</TableHead>
-                                <TableHead className="text-center">Contribution</TableHead>
+                                <TableHead className="text-center">Total BTC (USD)</TableHead>
+                                <TableHead className="text-center">Tagged BTC (USD)</TableHead>
+                                <TableHead className="text-center">Untagged BTC (USD)</TableHead>
+                                <TableHead className="text-center">Tagged %</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {monthlyData.map((data, index) => (
-                                <TableRow key={index}>
+                            {monthlyData.map((data) => (
+                                <TableRow key={data.month}>
                                     <TableCell className="text-center">{data.month}</TableCell>
-                                    <TableCell className="text-center">{data.totalBtc.toFixed(2)}</TableCell>
-                                    <TableCell className="text-center">{data.taggedBtc.toFixed(2)}</TableCell>
-                                    <TableCell className="text-center">{data.untaggedBtc.toFixed(2)}</TableCell>
                                     <TableCell className="text-center">
-                                        {data.taggedVolume > 0 ? (((data.taggedVolume / (data.taggedVolume + data.untaggedVolume)) * 100).toFixed(2)) : '0.00'}
+                                        {data.totalBtc.toFixed(2)} ({formatUsdMillions(data.volumeUsd)})
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {data.taggedBtc.toFixed(2)} ({formatUsdMillions(data.taggedVolumeUsd)})
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {data.untaggedBtc.toFixed(2)} ({formatUsdMillions(data.untaggedVolumeUsd)})
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {calculatePercentage(data.taggedVolumeUsd, data.volumeUsd)}%
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -217,7 +223,7 @@ const QuarterlyAnalysis = () => {
                 )}
             </CardContent>
         </Card>
-    )
-}
+    );
+};
 
 export default QuarterlyAnalysis;
