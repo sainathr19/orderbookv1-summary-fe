@@ -23,8 +23,7 @@ const TransactionsTable = React.memo(({ orders, addTagToUser }: Props) => {
   const renderedOrders = useMemo(() => 
     orders.map((order) => {
       const date = formatDate(order.CreatedAt);
-      const address = trimAddress(order.maker);
-      const amount = formatAmount(order.initiatorAtomicSwap.amount, 8).toFixed(2);
+      const amount = formatAmount(order.initiatorAtomicSwap.amount, 8).toFixed(4);
 
       const handleCopyAddress = () => {
         navigator.clipboard.writeText(order.maker)
@@ -43,7 +42,7 @@ const TransactionsTable = React.memo(({ orders, addTagToUser }: Props) => {
               className='m-0 p-0 flex items-center gap-2'
               onClick={handleCopyAddress}
             >
-              {address}
+              {order.maker}
               <Copy className="h-4 w-4 text-gray-500 hover:text-black" />
             </Button>
           </TableCell>

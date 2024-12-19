@@ -106,11 +106,11 @@ export default function AddressSearch() {
             </div>
             <div>
               <p className="font-semibold">Average Order Value:</p>
-              <p>{summaryData.transactions > 0 ? (summaryData.total_btc / summaryData.transactions).toFixed(2) : "N/A"}</p>
+              <p>{summaryData.transactions > 0 ? (summaryData.total_btc / summaryData.transactions).toFixed(4) : "N/A"}</p>
             </div>
             <div>
               <p className="font-semibold">Highest BTC:</p>
-              <p>{summaryData.highestOrder.toFixed(2)}</p>
+              <p>{summaryData.highestOrder.toFixed(4)}</p>
             </div>
             <div>
               <p className="font-semibold">Total Amount Transacted:</p>
@@ -154,7 +154,7 @@ export default function AddressSearch() {
                   <TableCell className="text-center">{formatDate(order.CreatedAt) || "N/A"}</TableCell>
                   <TableCell className="text-center">{initiatorAtomicSwap.chain || "N/A"}</TableCell>
                   <TableCell className="text-center">{order.followerAtomicSwap.chain || "N/A"}</TableCell>
-                  <TableCell className="text-center">{`${formatAmount(initiatorAtomicSwap.amount,8).toFixed(2)}` || "NA"}</TableCell>
+                  <TableCell className="text-center">{`${formatAmount(initiatorAtomicSwap.amount,8).toFixed(4)}` || "NA"}</TableCell>
                   <TableCell className="text-center">{`${amount.toFixed(2)}` || "NA"}</TableCell>
                 </TableRow>
               })}
