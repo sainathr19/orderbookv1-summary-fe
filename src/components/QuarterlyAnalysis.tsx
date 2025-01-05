@@ -76,15 +76,14 @@ const QuarterlyAnalysis = () => {
             taggedVolumeUsd: number;
             untaggedVolumeUsd: number;
         }> = {};
-
+    
         orders.forEach((order) => {
             const monthKey = format(new Date(order.CreatedAt), "yyyy-MM");
             const btcAmount = formatAmount(order.initiatorAtomicSwap.amount, 8);
-            
-            const usdAmount = calculateAmount(order.initiatorAtomicSwap.priceByOracle,order.initiatorAtomicSwap.amount,8) 
-                                + 
-                              calculateAmount(order.followerAtomicSwap.priceByOracle,order.followerAtomicSwap.amount,8);
-            
+    
+            const usdAmount = calculateAmount(order.initiatorAtomicSwap.priceByOracle, order.initiatorAtomicSwap.amount, 8) +
+                calculateAmount(order.followerAtomicSwap.priceByOracle, order.followerAtomicSwap.amount, 8);
+    
             if (!months[monthKey]) {
                 months[monthKey] = {
                     month: monthKey,
@@ -93,16 +92,16 @@ const QuarterlyAnalysis = () => {
                     untaggedBtc: 0,
                     volumeUsd: 0,
                     taggedVolumeUsd: 0,
-                    untaggedVolumeUsd: 0
+                    untaggedVolumeUsd: 0,
                 };
             }
-
+    
             const isTagged = order.tags && order.tags?.length > 0;
             const monthData = months[monthKey];
-
+    
             monthData.totalBtc += btcAmount;
             monthData.volumeUsd += usdAmount;
-
+    
             if (isTagged) {
                 monthData.taggedBtc += btcAmount;
                 monthData.taggedVolumeUsd += usdAmount;
@@ -111,40 +110,48 @@ const QuarterlyAnalysis = () => {
                 monthData.untaggedVolumeUsd += usdAmount;
             }
         });
-
-        const lastThreeMonths = Array.from({ length: 3 }, (_, i) => {
-            const date = subMonths(new Date(), i);
-            const monthKey = format(date, "yyyy-MM");
-            return months[monthKey] || {
-                month: monthKey,
-                totalBtc: 0,
-                taggedBtc: 0,
-                untaggedBtc: 0,
-                volumeUsd: 0,
-                taggedVolumeUsd: 0,
-                untaggedVolumeUsd: 0
-            };
-        }).reverse();
-
-        const quarterTotal = lastThreeMonths.reduce((acc, month) => ({
+    
+        const startMonth = new Date(2024, 9); // October 2024
+        const endMonth = new Date();
+        const allMonths: string[] = [];
+    
+        while (startMonth <= endMonth) {
+            allMonths.push(format(startMonth, "yyyy-MM"));
+            startMonth.setMonth(startMonth.getMonth() + 1);
+        }
+    
+        const monthlyData = allMonths.map((monthKey) => months[monthKey] || {
+            month: monthKey,
+            totalBtc: 0,
+            taggedBtc: 0,
+            untaggedBtc: 0,
+            volumeUsd: 0,
+            taggedVolumeUsd: 0,
+            untaggedVolumeUsd: 0,
+        });
+    
+        const total = monthlyData
+        .reduce((acc, month) => ({
             totalBtc: acc.totalBtc + month.totalBtc,
             taggedBtc: acc.taggedBtc + month.taggedBtc,
             untaggedBtc: acc.untaggedBtc + month.untaggedBtc,
             volumeUsd: acc.volumeUsd + month.volumeUsd,
             taggedVolumeUsd: acc.taggedVolumeUsd + month.taggedVolumeUsd,
-            untaggedVolumeUsd: acc.untaggedVolumeUsd + month.untaggedVolumeUsd
+            untaggedVolumeUsd: acc.untaggedVolumeUsd + month.untaggedVolumeUsd,
         }), {
             totalBtc: 0,
             taggedBtc: 0,
             untaggedBtc: 0,
             volumeUsd: 0,
             taggedVolumeUsd: 0,
-            untaggedVolumeUsd: 0
+            untaggedVolumeUsd: 0,
         });
-
-        setMonthlyData(lastThreeMonths);
-        setQuarterlyTotal(quarterTotal);
+    
+    
+        setMonthlyData(monthlyData);
+        setQuarterlyTotal(total);
     };
+    
 
     useEffect(() => {
         fetchLastThreeMonthsData();
