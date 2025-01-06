@@ -94,40 +94,40 @@ const ThorchainAnalytics = () => {
 
   return (
     <Card>
-      <CardContent className="p-4">
-        {monthlyStats.length > 0 ? (
-          monthlyStats.map((monthData) => (
-            <div key={monthData.month} className="mb-6">
-              <h3 className="text-lg font-bold text-center">{monthData.month}</h3>
-              <table className="table-auto w-full text-left mt-2">
-                <thead>
-                  <tr>
-                    <th>BTC Range</th>
-                    <th className='text-center'>Transaction Count</th>
-                    <th className='text-center'>Unique Addresses</th>
-                    <th className='text-center'>Total Volume</th>
-                    <th className='text-center'>Average Tx Size</th>
+    <CardContent className="p-4">
+      {monthlyStats.length > 0 ? (
+        monthlyStats.map((monthData) => (
+          <div key={monthData.month} className="mb-6">
+            <h3 className="text-lg font-bold text-center">{monthData.month}</h3>
+            <table className="table-auto w-full text-left mt-4 border border-gray-300 rounded-lg">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2">BTC Range</th>
+                  <th className="px-4 py-2 text-center">Transaction Count</th>
+                  <th className="px-4 py-2 text-center">Unique Addresses</th>
+                  <th className="px-4 py-2 text-center">Total Volume</th>
+                  <th className="px-4 py-2 text-center">Average Tx Size</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthData.stats.map((stat) => (
+                  <tr key={stat.range} className="hover:bg-gray-50 transition duration-200">
+                    <td className="px-4 py-2">{stat.range}</td>
+                    <td className="px-4 py-2 text-center">{stat.transactionCount}</td>
+                    <td className="px-4 py-2 text-center">{stat.uniqueAddresses}</td>
+                    <td className="px-4 py-2 text-center">{stat.totalVolume.toFixed(0)} BTC</td>
+                    <td className="px-4 py-2 text-center">{stat.averageTxSize.toFixed(6)} BTC</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {monthData.stats.map((stat) => (
-                    <tr key={stat.range}>
-                      <td>{stat.range}</td>
-                      <td className='text-center'>{stat.transactionCount}</td>
-                      <td className='text-center'>{stat.uniqueAddresses}</td>
-                      <td className='text-center'>{stat.totalVolume.toFixed(0)} BTC</td>
-                      <td className='text-center'>{stat.averageTxSize.toFixed(6)} BTC</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))
-        ) : (
-          <p>No data available</p>
-        )}
-      </CardContent>
-    </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
+      ) : (
+        <p className="text-center text-gray-500">No data available</p>
+      )}
+    </CardContent>
+  </Card>
   );
 };
 
