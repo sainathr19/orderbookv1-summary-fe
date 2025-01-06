@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { MoveUpRight } from "lucide-react";
 import QuarterlyAnalysis from "@/components/QuarterlyAnalysis";
 import { axiosInstance } from "@/lib/api";
+import ThorchainAnalytics from "@/components/Thorchain";
 
 export default function Home() {
   const [orders, setOrders] = useState<MatchedOrder[] | undefined>();
@@ -88,10 +89,12 @@ export default function Home() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="transactions" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="quarter">Quaterly Data</TabsTrigger>
+            <TabsTrigger value="thorchain">Thorchain</TabsTrigger>
+            <TabsTrigger value="chainflip">ChainFlip</TabsTrigger>
           </TabsList>
           <TabsContent value="transactions">
             {isLoading ? (
@@ -106,6 +109,9 @@ export default function Home() {
 
           <TabsContent value="quarter">
             <QuarterlyAnalysis/>
+          </TabsContent>
+          <TabsContent value="thorchain">
+            <ThorchainAnalytics/>
           </TabsContent>
         </Tabs>
       </CardContent>
