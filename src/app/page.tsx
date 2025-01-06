@@ -15,6 +15,7 @@ import { MoveUpRight } from "lucide-react";
 import QuarterlyAnalysis from "@/components/QuarterlyAnalysis";
 import { axiosInstance } from "@/lib/api";
 import ThorchainAnalytics from "@/components/Thorchain";
+import ChainflipAnalytics from "@/components/Chainflip";
 
 export default function Home() {
   const [orders, setOrders] = useState<MatchedOrder[] | undefined>();
@@ -112,6 +113,9 @@ export default function Home() {
           </TabsContent>
           <TabsContent value="thorchain">
             <ThorchainAnalytics/>
+          </TabsContent>
+          <TabsContent value="chainflip">
+            <ChainflipAnalytics/>
           </TabsContent>
         </Tabs>
       </CardContent>
